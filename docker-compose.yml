@@ -1,0 +1,47 @@
+services:
+  app:
+    build:
+      context: .  # Estamos dentro de fluxo-backend, correcto
+      dockerfile: Dockerfile
+    container_name: fluxo-backend-app-container
+    working_dir: /var/www/html
+    volumes:
+      - ./:/var/www/html        # Todo fluxo-backend dentro del contenedor
+      - ./docker-compose/nginx:/etc/nginx/conf.d
+    ports:
+      - "9100:9000"
+    networks:
+      - fluxo-network
+
+  webserver:
+    image: nginx:alpine
+    container_name: fluxo-webserver
+    ports:
+      - "8000:80"
+    volumes:
+      - ./:/var/www/html       # Igual que app
+      - ./docker-compose/nginx/:/etc/nginx/conf.d
+    networks:
+      - fluxo-network
+
+  db:
+    image: mysql:8.0
+    container_name: fluxo-db
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: fluxo
+      MYSQL_USER: fluxo_user
+      MYSQL_PASSWORD: secret
+    ports:
+      - "3306:3306"
+    volumes:
+      - dbdata:/var/lib/mysql
+    networks:
+      - fluxo-network
+
+volumes:
+  dbdata:
+
+networks:
+  fluxo-network:
+    driver: bridge
