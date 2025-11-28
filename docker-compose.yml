@@ -6,10 +6,22 @@ services:
     container_name: fluxo-backend-app-container
     working_dir: /var/www/html
     volumes:
-      - ./:/var/www/html        # Todo fluxo-backend dentro del contenedor
+      - ./:/var/www/html
       - ./docker-compose/nginx:/etc/nginx/conf.d
     ports:
       - "9100:9000"
+    networks:
+      - fluxo-network
+
+  node:
+    image: node:22
+    container_name: fluxo-node
+    working_dir: /var/www/html
+    volumes:
+      - ./:/var/www/html
+    command: npm run dev
+    ports:
+      - "5173:5173" # HMR
     networks:
       - fluxo-network
 

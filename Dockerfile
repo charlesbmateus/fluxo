@@ -11,6 +11,8 @@ RUN apt-get update && apt-get install -y \
     && docker-php-ext-install gd pdo pdo_mysql mbstring intl zip exif pcntl bcmath \
     && pecl install imagick xdebug \
     && docker-php-ext-enable imagick xdebug \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Configurar Xdebug
