@@ -2,12 +2,13 @@
 
 namespace Database\Factories;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\User>
+ * @extends Factory<User>
  */
 class UserFactory extends Factory
 {
@@ -29,6 +30,7 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
+            'avatar' => $this->faker->imageUrl(200, 200, 'people'),
         ];
     }
 
@@ -39,6 +41,26 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'email_verified_at' => null,
+        ]);
+    }
+
+    /**
+     * User with client role
+     */
+    public function clientRole(): static
+    {
+        return $this->state(fn () => [
+            'role' => 'client',
+        ]);
+    }
+
+    /**
+     *  User provider role
+     */
+    public function providerRole(): static
+    {
+        return $this->state(fn () => [
+            'role' => 'provider',
         ]);
     }
 }
