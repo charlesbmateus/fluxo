@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\BookingStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -23,52 +24,88 @@ class Booking extends Model
     protected $casts = [
         'scheduled_at' => 'datetime',
         'price'        => 'decimal:2',
+        'status'       => BookingStatus::class,
     ];
 
-    /**
-     * Client who made the booking
-     */
+    /* ─────────────────────────────────────────
+     |  RELATIONSHIPS
+     ───────────────────────────────────────── */
+
+    // Client who made the booking
     public function client(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
     }
 
-    /**
-     * The service being booked
-     */
+    // Service being booked
     public function service(): BelongsTo
     {
         return $this->belongsTo(Service::class);
     }
 
-    /**
-     * The provider of the service (through service)
-     */
+    // Provider (through service)
     public function provider(): HasOneThrough
     {
         return $this->hasOneThrough(
             User::class,
             Service::class,
-            'id',       // Foreign key on Service table
-            'id',       // Foreign key on User table
-            'service_id', // Local key on Booking table
-            'user_id'   // Local key on Service table
+            'id',           // Service.id
+            'id',           // User.id
+            'service_id',   // Booking.service_id
+            'user_id'       // Service.user_id
         );
     }
 
-    /**
-     * Scope to get only confirmed bookings
-     */
+    /* ─────────────────────────────────────────
+     |  SCOPES
+     ───────────────────────────────────────── */
+
     public function scopeConfirmed($query)
     {
-        return $query->where('status', 'confirmed');
+        return $query->where('status', BookingStatus::CONFIRMED->value);
     }
 
-    /**
-     * Scope to get only upcoming bookings
-     */
     public function scopeUpcoming($query)
     {
         return $query->where('scheduled_at', '>', now());
+    }
+
+    public function scopeForProvider($query, int $providerId)
+    {
+        return $query->whereHas('service', function ($q) use ($providerId) {
+            $q->where('user_id', $providerId);
+        });
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->whereIn('status', [
+            BookingStatus::PENDING->value,
+            BookingStatus::CONFIRMED->value,
+        ]);
+    }
+
+    /* ─────────────────────────────────────────
+     |  HELPERS
+     ───────────────────────────────────────── */
+
+    public function isPending(): bool
+    {
+        return $this->status === BookingStatus::PENDING;
+    }
+
+    public function isConfirmed(): bool
+    {
+        return $this->status === BookingStatus::CONFIRMED;
+    }
+
+    public function isCompleted(): bool
+    {
+        return $this->status === BookingStatus::COMPLETED;
+    }
+
+    public function isCancelled(): bool
+    {
+        return $this->status === BookingStatus::CANCELLED;
     }
 }

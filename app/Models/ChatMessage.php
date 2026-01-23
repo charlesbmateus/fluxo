@@ -22,8 +22,12 @@ class ChatMessage extends Model
         'is_read' => 'boolean',
     ];
 
+    /* -----------------------------------------------------
+     |  Relationships
+     | ----------------------------------------------------- */
+
     /**
-     * The user who sent the message.
+     * User who sent the message
      */
     public function sender(): BelongsTo
     {
@@ -31,7 +35,7 @@ class ChatMessage extends Model
     }
 
     /**
-     * The user who receives the message.
+     * User who receives the message
      */
     public function receiver(): BelongsTo
     {
@@ -39,10 +43,76 @@ class ChatMessage extends Model
     }
 
     /**
-     * Optional booking related to this message.
+     * Optional booking context (chat tied to a service booking)
      */
     public function booking(): BelongsTo
     {
         return $this->belongsTo(Booking::class);
+    }
+
+    /* -----------------------------------------------------
+     |  Scopes
+     | ----------------------------------------------------- */
+
+    /**
+     * Only unread messages
+     */
+    public function scopeUnread($query)
+    {
+        return $query->where('is_read', false);
+    }
+
+    /**
+     * Messages between two users (conversation)
+     */
+    public function scopeBetweenUsers($query, int $userA, int $userB)
+    {
+        return $query->where(function ($q) use ($userA, $userB) {
+            $q->where('sender_id', $userA)
+                ->where('receiver_id', $userB);
+        })->orWhere(function ($q) use ($userA, $userB) {
+            $q->where('sender_id', $userB)
+                ->where('receiver_id', $userA);
+        });
+    }
+
+    /**
+     * Messages for a specific booking
+     */
+    public function scopeForBooking($query, int $bookingId)
+    {
+        return $query->where('booking_id', $bookingId);
+    }
+
+    /* -----------------------------------------------------
+     |  Helpers
+     | ----------------------------------------------------- */
+
+    /**
+     * Mark message as read
+     */
+    public function markAsRead(): void
+    {
+        if (! $this->is_read) {
+            $this->update(['is_read' => true]);
+        }
+    }
+
+    // Messages sent by user
+    public function sentMessages()
+    {
+        return $this->hasMany(ChatMessage::class, 'sender_id');
+    }
+
+    // Messages received by user
+    public function receivedMessages()
+    {
+        return $this->hasMany(ChatMessage::class, 'receiver_id');
+    }
+
+    public function allMessages()
+    {
+        return ChatMessage::where('sender_id', $this->id)
+            ->orWhere('receiver_id', $this->id);
     }
 }

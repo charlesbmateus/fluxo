@@ -3,21 +3,16 @@
 namespace App\Models;
 
 use App\Enums\ServiceStatus;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
-use Carbon\Carbon;
 
-/**
- * Class Service
- */
 class Service extends Model
 {
     use HasFactory;
-
-    protected $table = 'services';
 
     protected $fillable = [
         'user_id',
@@ -30,116 +25,113 @@ class Service extends Model
         'city',
         'country',
         'is_active',
+        'status',
         'thumbnail',
     ];
 
     protected $casts = [
-        'price' => 'decimal:2',
+        'price'     => 'decimal:2',
         'is_active' => 'boolean',
-        'status' => ServiceStatus::class,
+        'status'    => ServiceStatus::class,
     ];
 
-    /* -----------------------------------------------------
-     |  Eloquent relationships
-     | ----------------------------------------------------- */
+    /* ─────────────────────────────────────────
+     |  RELATIONSHIPS
+     ───────────────────────────────────────── */
 
-    public function provider(): BelongsTo
+    // Provider (owner)
+    public function user(): BelongsTo
     {
-        // Your migration used user_id for the owner of the service
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsTo(User::class);
     }
 
+    // Category
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
     }
 
+    // Weekly availability (Mon–Sun slots)
     public function availabilities(): HasMany
     {
-        return $this->hasMany(ServiceAvailability::class, 'service_id');
+        return $this->hasMany(ServiceAvailability::class);
     }
 
-    public function unAvailabilities(): HasMany
+    // Temporary blocks (vacation, sick leave, etc.)
+    public function unavailabilities(): HasMany
     {
-        return $this->hasMany(ServiceUnavailability::class, 'service_id');
+        return $this->hasMany(ServiceUnavailability::class);
     }
 
+    // Bookings
     public function bookings(): HasMany
     {
-        // If you used service_bookings table name / model Booking
-        return $this->hasMany(Booking::class, 'service_id');
+        return $this->hasMany(Booking::class);
     }
 
+    // Reviews
     public function reviews(): HasMany
     {
-        return $this->hasMany(Review::class, 'service_id');
+        return $this->hasMany(Review::class);
     }
 
-    public function payments(): HasMany
-    {
-        return $this->hasMany(Payment::class, 'service_id');
-    }
-
-    /* -----------------------------------------------------
-     |  Model boot / events
-     | ----------------------------------------------------- */
+    /* ─────────────────────────────────────────
+     |  MODEL EVENTS
+     ───────────────────────────────────────── */
 
     protected static function booted(): void
     {
-        // auto-generate slug on creating if empty
         static::creating(function (Service $service) {
-            if (empty($service->slug) && ! empty($service->title)) {
+            if (empty($service->slug)) {
                 $service->slug = static::generateUniqueSlug($service->title);
             }
         });
 
-        // keep slug up-to-date on title changes (optional)
-        static::saving(function (Service $service) {
-            if ($service->isDirty('title') && ! $service->isDirty('slug')) {
+        static::updating(function (Service $service) {
+            if ($service->isDirty('title')) {
                 $service->slug = static::generateUniqueSlug($service->title, $service->id);
             }
         });
     }
 
-    /**
-     * Generate a unique slug for the service.
-     */
     public static function generateUniqueSlug(string $title, ?int $exceptId = null): string
     {
         $base = Str::slug($title);
         $slug = $base;
         $i = 1;
 
-        while (static::where('slug', $slug)
-            ->when($exceptId, fn($q) => $q->where('id', '!=', $exceptId))
-            ->exists()) {
+        while (
+        static::where('slug', $slug)
+            ->when($exceptId, fn ($q) => $q->where('id', '!=', $exceptId))
+            ->exists()
+        ) {
             $slug = $base . '-' . $i++;
         }
 
         return $slug;
     }
 
-    /* -----------------------------------------------------
-     |  Scopes
-     | ----------------------------------------------------- */
+    /* ─────────────────────────────────────────
+     |  SCOPES
+     ───────────────────────────────────────── */
 
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
     }
 
-    public function scopeByCategory($query, $categoryId)
+    public function scopeByCategory($query, int $categoryId)
     {
         return $query->where('category_id', $categoryId);
     }
 
-    public function scopeSearchTitleOrDescription($query, ?string $term)
+    public function scopeSearch($query, ?string $term)
     {
-        if (empty($term)) {
+        if (! $term) {
             return $query;
         }
 
-        $term = '%' . str_replace(' ', '%', trim($term)) . '%';
+        $term = '%' . trim($term) . '%';
 
         return $query->where(function ($q) use ($term) {
             $q->where('title', 'like', $term)
@@ -148,13 +140,76 @@ class Service extends Model
         });
     }
 
-    /* -----------------------------------------------------
-     |  Helpers
-     | ----------------------------------------------------- */
+    /* ─────────────────────────────────────────
+     |  AVAILABILITY LOGIC
+     ───────────────────────────────────────── */
+
+    public function hasWeeklyAvailabilityFor(
+        \DateTimeInterface $start,
+        \DateTimeInterface $end
+    ): bool {
+        $startC = Carbon::instance($start);
+        $endC   = Carbon::instance($end);
+
+        return $this->availabilities()
+            ->where('is_active', true)
+            ->where('day_of_week', $startC->dayOfWeek)
+            ->where('start_time', '<=', $startC->format('H:i:s'))
+            ->where('end_time', '>=', $endC->format('H:i:s'))
+            ->exists();
+    }
+
+    public function hasUnavailabilityOverlap(
+        \DateTimeInterface $start,
+        \DateTimeInterface $end
+    ): bool {
+        return $this->unavailabilities()
+            ->where(function ($q) use ($start, $end) {
+                $q->whereBetween('start_datetime', [$start, $end])
+                    ->orWhereBetween('end_datetime', [$start, $end])
+                    ->orWhere(function ($q2) use ($start, $end) {
+                        $q2->where('start_datetime', '<', $start)
+                            ->where('end_datetime', '>', $end);
+                    });
+            })
+            ->exists();
+    }
+
+    public function hasBookingOverlap(
+        \DateTimeInterface $start,
+        \DateTimeInterface $end
+    ): bool {
+        return $this->bookings()
+            ->whereBetween('scheduled_at', [$start, $end])
+            ->exists();
+    }
+
+    public function isAvailableAt(
+        \DateTimeInterface $start,
+        \DateTimeInterface $end
+    ): bool {
+        if ($this->hasUnavailabilityOverlap($start, $end)) {
+            return false;
+        }
+
+        if (! $this->hasWeeklyAvailabilityFor($start, $end)) {
+            return false;
+        }
+
+        if ($this->hasBookingOverlap($start, $end)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /* ─────────────────────────────────────────
+     |  HELPERS
+     ───────────────────────────────────────── */
 
     public function averageRating(): ?float
     {
-        return $this->reviews()->avg('rating') ? (float) $this->reviews()->avg('rating') : null;
+        return $this->reviews()->avg('rating');
     }
 
     public function ratingCount(): int
@@ -164,82 +219,13 @@ class Service extends Model
 
     public function formattedPrice(string $currency = 'CHF'): string
     {
-        // basic formatting - you can replace with money library later
         return number_format((float) $this->price, 2) . ' ' . $currency;
     }
 
     public function getThumbnailUrlAttribute(): ?string
     {
-        if (empty($this->thumbnail)) {
-            return null;
-        }
-
-        return asset('storage/' . $this->thumbnail);
-    }
-
-    /**
-     * Basic availability check.
-     *
-     * Returns true if:
-     * - There is no unavailability overlapping the requested period; AND
-     * - There is at least one weekly availability slot for the requested day that contains the times.
-     *
-     * Note: This is a simple server-side check. For production you might want to generate discrete slots
-     * (e.g. 30-min chunks) and check conflicts against bookings too.
-     *
-     * @param \DateTimeInterface $start
-     * @param \DateTimeInterface $end
-     * @return bool
-     */
-    public function isAvailableAt(\DateTimeInterface $start, \DateTimeInterface $end): bool
-    {
-        // normalize to Carbon
-        $startC = Carbon::instance($start)->setTimezone(config('app.timezone'));
-        $endC = Carbon::instance($end)->setTimezone(config('app.timezone'));
-
-        // 1) if any unavailability overlaps -> not available
-        $overlapUnavail = $this->unAvailabilities()
-            ->where(function ($q) use ($startC, $endC) {
-                $q->whereBetween('start_datetime', [$startC->toDateTimeString(), $endC->toDateTimeString()])
-                    ->orWhereBetween('end_datetime', [$startC->toDateTimeString(), $endC->toDateTimeString()])
-                    ->orWhere(function ($q2) use ($startC, $endC) {
-                        $q2->where('start_datetime', '<', $startC->toDateTimeString())
-                            ->where('end_datetime', '>', $endC->toDateTimeString());
-                    });
-            })->exists();
-
-        if ($overlapUnavail) {
-            return false;
-        }
-
-        // 2) check weekly availability slots for the day of week
-        // day_of_week in DB: 0 (Sunday) .. 6 (Saturday) — Carbon::dayOfWeek returns 0..6
-        $dow = (int) $startC->dayOfWeek;
-        $startTime = $startC->format('H:i:s');
-        $endTime = $endC->format('H:i:s');
-
-        $slotExists = $this->availabilities()
-            ->where('day_of_week', $dow)
-            ->where('start_time', '<=', $startTime)
-            ->where('end_time', '>=', $endTime)
-            ->where('is_active', true)
-            ->exists();
-
-        if (! $slotExists) {
-            return false;
-        }
-
-        // 3) Also check existing bookings for collisions
-        $collision = $this->bookings()
-            ->where(function ($q) use ($startC, $endC) {
-                $q->whereBetween('start_datetime', [$startC->toDateTimeString(), $endC->toDateTimeString()])
-                    ->orWhereBetween('end_datetime', [$startC->toDateTimeString(), $endC->toDateTimeString()])
-                    ->orWhere(function ($q2) use ($startC, $endC) {
-                        $q2->where('start_datetime', '<', $startC->toDateTimeString())
-                            ->where('end_datetime', '>', $endC->toDateTimeString());
-                    });
-            })->exists();
-
-        return ! $collision;
+        return $this->thumbnail
+            ? asset('storage/' . $this->thumbnail)
+            : null;
     }
 }

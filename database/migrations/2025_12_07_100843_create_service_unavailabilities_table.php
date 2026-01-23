@@ -25,6 +25,9 @@ return new class extends Migration
             $table->string('reason')->nullable();
 
             $table->timestamps();
+
+            // 🔹 Index for fast availability checks
+            $table->index(['service_id', 'start_datetime', 'end_datetime']);
         });
     }
 

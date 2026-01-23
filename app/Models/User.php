@@ -12,9 +12,6 @@ class User extends Authenticatable
 {
     use HasApiTokens, HasFactory;
 
-    /**
-     * Attributes that can be mass assigned.
-     */
     protected $fillable = [
         'name',
         'email',
@@ -23,25 +20,19 @@ class User extends Authenticatable
         'avatar',
     ];
 
-    /**
-     * Hidden attributes.
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * Casts.
-     */
     protected $casts = [
         'email_verified_at' => 'datetime',
         'role' => Role::class,
     ];
 
-    /* ─────────────────────────────────────────
-     |  ROLE CHECKERS
-     ───────────────────────────────────────── */
+    /* ─────────────────────────────
+     | ROLES
+     ───────────────────────────── */
 
     public function isAdmin(): bool
     {
@@ -58,60 +49,62 @@ class User extends Authenticatable
         return $this->role === Role::CLIENT;
     }
 
-    /* ─────────────────────────────────────────
-     |  RELATIONSHIPS
-     ───────────────────────────────────────── */
+    /* ─────────────────────────────
+     | RELATIONSHIPS
+     ───────────────────────────── */
 
-    // Services that the provider offers
+    // Provider → services
     public function services(): HasMany
     {
-        return $this->hasMany(Service::class, 'provider_id');
+        return $this->hasMany(Service::class);
     }
 
-    // Bookings made by the client
-    public function clientBookings(): HasMany
+    // Client → bookings
+    public function bookings(): HasMany
     {
         return $this->hasMany(Booking::class, 'user_id');
     }
 
-    // Bookings assigned to a provider
-    public function providerBookings(): HasMany
+    // Client → reviews written
+    public function reviewsWritten(): HasMany
     {
-        return $this->hasMany(Booking::class, 'provider_id');
+        return $this->hasMany(Review::class, 'user_id');
     }
 
-    // Reviews received
-    public function reviews(): HasMany
+    // Provider → reviews received (via services)
+    public function reviewsReceived()
     {
-        return $this->hasMany(Review::class);
+        return Review::whereIn(
+            'service_id',
+            $this->services()->pluck('id')
+        );
     }
 
-    // Payments done by the user
+    // Payments
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
     }
 
-    // Internal transaction logs
     public function transactionLogs(): HasMany
     {
         return $this->hasMany(TransactionLog::class);
     }
 
-    // Messages sent by the user
-    public function messages(): HasMany
+    // Chat
+    public function sentMessages(): HasMany
     {
         return $this->hasMany(ChatMessage::class, 'sender_id');
     }
 
-    /* ─────────────────────────────────────────
-     |  PROFILE HELPERS
-     ───────────────────────────────────────── */
-
-    public function getFullNameAttribute(): string
+    public function receivedMessages(): HasMany
     {
-        return $this->name;
+        return $this->hasMany(ChatMessage::class, 'receiver_id');
     }
+
+    /* ─────────────────────────────
+     | ACCESSORS
+     ───────────────────────────── */
 
     public function getAvatarUrlAttribute(): string
     {
@@ -120,23 +113,48 @@ class User extends Authenticatable
             : 'https://ui-avatars.com/api/?name=' . urlencode($this->name);
     }
 
-    /* ─────────────────────────────────────────
-     |  RATING HELPERS
-     ───────────────────────────────────────── */
+    /* ─────────────────────────────
+     | RATINGS
+     ───────────────────────────── */
 
     public function averageRating(): ?float
     {
-        return $this->reviews()->avg('rating');
+        return round($this->reviewsReceived()->avg('rating'), 2);
     }
 
     public function ratingCount(): int
     {
-        return $this->reviews()->count();
+        return $this->reviewsReceived()->count();
     }
 
-    /* ─────────────────────────────────────────
-     |  PROVIDER FINANCIAL HELPERS
-     ───────────────────────────────────────── */
+    /* ─────────────────────────────
+     | PROVIDER BOOKINGS (via services)
+     ───────────────────────────── */
+
+    public function providerBookings()
+    {
+        return Booking::whereIn(
+            'service_id',
+            $this->services()->pluck('id')
+        );
+    }
+
+    public function upcomingBookings()
+    {
+        return $this->providerBookings()
+            ->where('status', 'confirmed')
+            ->where('scheduled_at', '>', now());
+    }
+
+    public function pastBookings()
+    {
+        return $this->providerBookings()
+            ->where('status', 'completed');
+    }
+
+    /* ─────────────────────────────
+     | FINANCE
+     ───────────────────────────── */
 
     public function totalEarnings(): float
     {
@@ -148,22 +166,5 @@ class User extends Authenticatable
     public function balance(): float
     {
         return (float) $this->transactionLogs()->sum('amount');
-    }
-
-    /* ─────────────────────────────────────────
-     |  BOOKING HELPERS
-     ───────────────────────────────────────── */
-
-    public function upcomingBookings(): HasMany
-    {
-        return $this->providerBookings()
-            ->where('status', 'confirmed')
-            ->where('start_time', '>', now());
-    }
-
-    public function pastBookings(): HasMany
-    {
-        return $this->providerBookings()
-            ->where('status', 'completed');
     }
 }

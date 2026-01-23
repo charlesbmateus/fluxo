@@ -10,18 +10,23 @@ class Review extends Model
 {
     use HasFactory;
 
-    /**
-     * Mass assignable attributes
-     */
     protected $fillable = [
-        'user_id',
+        'user_id',     // client who leaves the review
         'service_id',
         'rating',
         'comment',
     ];
 
+    protected $casts = [
+        'rating' => 'integer',
+    ];
+
+    /* -----------------------------------------------------
+     |  Relationships
+     | ----------------------------------------------------- */
+
     /**
-     * The client (user) who left the review
+     * Client who wrote the review
      */
     public function user(): BelongsTo
     {
@@ -29,10 +34,53 @@ class Review extends Model
     }
 
     /**
-     * The reviewed service
+     * Reviewed service
      */
     public function service(): BelongsTo
     {
         return $this->belongsTo(Service::class);
+    }
+
+    /**
+     * Provider of the reviewed service (through service)
+     */
+    public function provider(): BelongsTo
+    {
+        return $this->service->user();
+    }
+
+    /* -----------------------------------------------------
+     |  Scopes
+     | ----------------------------------------------------- */
+
+    public function scopeForService($query, int $serviceId)
+    {
+        return $query->where('service_id', $serviceId);
+    }
+
+    public function scopeForProvider($query, int $providerId)
+    {
+        return $query->whereHas('service', function ($q) use ($providerId) {
+            $q->where('user_id', $providerId);
+        });
+    }
+
+    public function scopeWithRatingAtLeast($query, int $rating)
+    {
+        return $query->where('rating', '>=', $rating);
+    }
+
+    /* -----------------------------------------------------
+     |  Helpers
+     | ----------------------------------------------------- */
+
+    public function isPositive(): bool
+    {
+        return $this->rating >= 4;
+    }
+
+    public function isNegative(): bool
+    {
+        return $this->rating <= 2;
     }
 }
