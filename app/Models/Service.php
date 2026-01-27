@@ -180,7 +180,7 @@ class Service extends Model
         \DateTimeInterface $end
     ): bool {
         return $this->bookings()
-            ->whereBetween('scheduled_at', [$start, $end])
+            ->whereBetween('start_datetime', [$start, $end])
             ->exists();
     }
 

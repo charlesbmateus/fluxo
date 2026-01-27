@@ -143,7 +143,7 @@ class User extends Authenticatable
     {
         return $this->providerBookings()
             ->where('status', 'confirmed')
-            ->where('scheduled_at', '>', now());
+            ->where('start_datetime', '>', now());
     }
 
     public function pastBookings()

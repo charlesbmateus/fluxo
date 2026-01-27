@@ -20,13 +20,22 @@ class BookingFactory extends Factory
         $service = Service::inRandomOrder()->first();
         $client  = User::where('role', 'client')->inRandomOrder()->first();
 
+        $start = $this->faker->dateTimeBetween('+1 day', '+1 month');
+        $end   = (clone $start)->modify('+1 hour');
+
         return [
-            'user_id'      => $client->id,
-            'service_id'   => $service->id,
-            'scheduled_at' => $this->faker->dateTimeBetween('+1 day', '+1 month'),
-            'status'       => $this->faker->randomElement(['pending', 'confirmed', 'completed', 'cancelled']),
-            'price'        => $service->price,
-            'notes'        => $this->faker->optional()->sentence(),
+            'user_id'        => $client->id,
+            'service_id'     => $service->id,
+            'start_datetime' => $start,
+            'end_datetime'   => $end,
+            'status'         => $this->faker->randomElement([
+                BookingStatus::PENDING,
+                BookingStatus::CONFIRMED,
+                BookingStatus::COMPLETED,
+                BookingStatus::CANCELLED,
+            ]),
+            'price'          => $service->price,
+            'notes'          => $this->faker->optional()->sentence(),
         ];
     }
 }

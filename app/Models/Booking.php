@@ -13,18 +13,20 @@ class Booking extends Model
     use HasFactory;
 
     protected $fillable = [
-        'user_id',      // client
+        'user_id',
         'service_id',
-        'scheduled_at',
+        'start_datetime',
+        'end_datetime',
         'status',
         'price',
         'notes',
     ];
 
     protected $casts = [
-        'scheduled_at' => 'datetime',
-        'price'        => 'decimal:2',
-        'status'       => BookingStatus::class,
+        'start_datetime' => 'datetime',
+        'end_datetime'   => 'datetime',
+        'price'          => 'decimal:2',
+        'status'         => BookingStatus::class,
     ];
 
     /* ─────────────────────────────────────────
@@ -67,7 +69,19 @@ class Booking extends Model
 
     public function scopeUpcoming($query)
     {
-        return $query->where('scheduled_at', '>', now());
+        return $query->where('start_datetime', '>', now());
+    }
+
+    public function scopeOngoing($query)
+    {
+        return $query
+            ->where('start_datetime', '<=', now())
+            ->where('end_datetime', '>=', now());
+    }
+
+    public function scopePast($query)
+    {
+        return $query->where('end_datetime', '<', now());
     }
 
     public function scopeForProvider($query, int $providerId)

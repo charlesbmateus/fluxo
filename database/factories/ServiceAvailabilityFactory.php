@@ -5,12 +5,23 @@ namespace Database\Factories;
 use App\Models\Service;
 use App\Models\ServiceAvailability;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 /**
  * @extends Factory<ServiceAvailability>
  */
 class ServiceAvailabilityFactory extends Factory
 {
+    use HasFactory;
+
+    protected $fillable = [
+        'service_id',
+        'day_of_week',
+        'start_time',
+        'end_time',
+        'is_active',
+    ];
+
     /**
      * Define the model's default state.
      *

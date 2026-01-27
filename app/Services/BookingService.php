@@ -5,70 +5,95 @@ namespace App\Services;
 use App\Enums\BookingStatus;
 use App\Models\Booking;
 use App\Models\Service;
+use App\Models\User;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class BookingService
 {
-    /**
-     * Create a booking safely.
-     *
-     * @throws ValidationException
-     */
-    public function create(array $data): Booking
+    public function create(User $client, array $data): Booking
     {
-        return DB::transaction(function () use ($data) {
+        $service = Service::findOrFail($data['service_id']);
 
-            /** @var Service $service */
-            $service = Service::query()->lockForUpdate()->findOrFail($data['service_id']);
+        $start = Carbon::parse($data['start_datetime']);
+        $end   = $this->calculateEndTime($service, $start);
 
-            $start = Carbon::parse($data['scheduled_at']);
-            $end   = $this->calculateEndTime($service, $start);
+        // ⛔️ disponibilidad
+        if (! $service->isAvailableAt($start, $end)) {
+            throw ValidationException::withMessages([
+                'start_datetime' => 'The service is not available at the selected time.',
+            ]);
+        }
 
-            // 1️⃣ Availability check
-            if (! $service->isAvailableAt($start, $end)) {
+        return Booking::create([
+            'user_id'        => $client->id,
+            'service_id'     => $service->id,
+            'start_datetime' => $start,
+            'end_datetime'   => $end,
+            'status'         => BookingStatus::PENDING,
+            'price'          => $this->calculatePrice($service, $start, $end),
+        ]);
+    }
+
+    public function updateStatus(
+        User $actor,
+        Booking $booking,
+        string $newStatus
+    ): Booking {
+        $currentStatus = $booking->status->value;
+
+        // Allowed transitions map
+        $allowedTransitions = [
+            'pending' => ['confirmed', 'cancelled'],
+            'confirmed' => ['completed', 'cancelled'],
+        ];
+
+        // Check transition validity
+        if (! isset($allowedTransitions[$currentStatus]) ||
+            ! in_array($newStatus, $allowedTransitions[$currentStatus], true)) {
+            throw ValidationException::withMessages([
+                'status' => 'Invalid status transition.',
+            ]);
+        }
+
+        // Authorization rules
+        if ($newStatus === 'confirmed' || $newStatus === 'completed') {
+            // Only provider can confirm or complete
+            if ($actor->id !== $booking->provider->id) {
                 throw ValidationException::withMessages([
-                    'scheduled_at' => 'The service is not available at the selected time.',
+                    'status' => 'Only the provider can perform this action.',
                 ]);
             }
+        }
 
-            // 2️⃣ Create booking
-            $booking = Booking::create([
-                'user_id'      => $data['user_id'], // client
-                'service_id'   => $service->id,
-                'scheduled_at' => $start,
-                'status'       => BookingStatus::PENDING,
-                'price'        => $this->calculatePrice($service, $start, $end),
-                'notes'        => $data['notes'] ?? null,
-            ]);
+        if ($newStatus === 'cancelled') {
+            // Client OR provider can cancel
+            if (
+                $actor->id !== $booking->user_id &&
+                $actor->id !== $booking->provider->id
+            ) {
+                throw ValidationException::withMessages([
+                    'status' => 'Not authorized to cancel this booking.',
+                ]);
+            }
+        }
 
-            // 🔜 FUTURE:
-            // - create invoice
-            // - emit event BookingCreated
-            // - send notification
+        $booking->update([
+            'status' => $newStatus,
+        ]);
 
-            return $booking;
-        });
+        return $booking->fresh();
     }
 
-    /**
-     * Calculate booking end time.
-     * (simple default = 1 hour)
-     */
     protected function calculateEndTime(Service $service, Carbon $start): Carbon
     {
-        // Later: derive from service duration / pricing model
-        return $start->copy()->addHour();
+        return $start->copy()->addHour(); // MVP
     }
 
-    /**
-     * Calculate booking price.
-     */
     protected function calculatePrice(Service $service, Carbon $start, Carbon $end): float
     {
         if ($service->pricing_model === 'hourly') {
-            $hours = max(1, $start->diffInMinutes($end) / 60);
+            $hours = max(1, ceil($start->diffInMinutes($end) / 60));
             return round($service->price * $hours, 2);
         }
 
