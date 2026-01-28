@@ -80,6 +80,11 @@ class User extends Authenticatable
         );
     }
 
+    public function notifications(): HasMany
+    {
+        return $this->hasMany(\App\Models\Notification::class);
+    }
+
     // Payments
     public function payments(): HasMany
     {

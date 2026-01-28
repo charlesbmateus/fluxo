@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\InvoiceController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\ServiceController;
 use Illuminate\Http\Request;
@@ -39,4 +40,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/invoices/{invoice}/issue', [InvoiceController::class, 'issue']);
     Route::patch('/invoices/{invoice}/pay', [InvoiceController::class, 'pay']);
     Route::patch('/invoices/{invoice}/cancel', [InvoiceController::class, 'cancel']);
+});
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::patch('/notifications/{notification}/read', [NotificationController::class, 'markAsRead']);
+    Route::patch('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
 });

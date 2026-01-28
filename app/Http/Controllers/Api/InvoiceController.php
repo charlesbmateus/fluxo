@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Invoice;
 use App\Services\InvoiceService;
+use App\Services\NotificationService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
 
@@ -13,7 +14,8 @@ class InvoiceController extends Controller
     use AuthorizesRequests;
 
     public function __construct(
-        protected InvoiceService $invoiceService
+        protected InvoiceService $invoiceService,
+        protected NotificationService $notificationService
     ) {}
 
     /**
@@ -49,9 +51,16 @@ class InvoiceController extends Controller
 
         $invoice->markAsPaid();
 
+        // NOTIFY THE PROVIDER
+        $this->notificationService->notify(
+            $invoice->provider,
+            'invoice_paid',
+            'An invoice has been paid'
+        );
+
         return response()->json([
             'message' => 'Invoice paid successfully',
-            'data'    => $invoice->refresh(),
+            'data' => $invoice,
         ]);
     }
 
