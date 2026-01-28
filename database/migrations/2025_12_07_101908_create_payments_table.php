@@ -15,7 +15,7 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
 
             // Related booking
-            $table->foreignId('booking_id')->constrained('service_bookings')->onDelete('cascade');
+            $table->foreignId('booking_id')->constrained('bookings')->onDelete('cascade');
 
             // Payment details
             $table->decimal('amount', 10, 2);

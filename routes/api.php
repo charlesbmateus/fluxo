@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\ServiceController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -17,6 +18,9 @@ Route::middleware('auth:sanctum')->get('/check', function () {
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/bookings', [BookingController::class, 'store']);
     Route::patch('/bookings/{booking}/status', [BookingController::class, 'updateStatus']);
+
+    // PAYMENTS
+    Route::post('/payments', [PaymentController::class, 'store']);
 });
 
 Route::get('/services', [ServiceController::class, 'index']);

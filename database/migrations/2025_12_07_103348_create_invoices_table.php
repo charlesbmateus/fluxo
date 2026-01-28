@@ -14,21 +14,32 @@ return new class extends Migration
         Schema::create('invoices', function (Blueprint $table) {
             $table->id();
 
-            // Reference to the booking
-            $table->foreignId('booking_id')->constrained()->onDelete('cascade');
+            $table->string('number')->unique();
 
-            // Reference to the client who pays
-            $table->foreignId('client_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('user_id')       // client
+            ->constrained('users')
+                ->cascadeOnDelete();
 
-            // Reference to the service provider
-            $table->foreignId('provider_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('provider_id')
+                ->constrained('users')
+                ->cascadeOnDelete();
 
-            $table->decimal('amount', 10, 2); // Total paid
-            $table->decimal('platform_fee', 10, 2)->default(0); // Platform commission
-            $table->enum('status', ['pending', 'paid', 'failed', 'refunded'])->default('pending');
+            $table->foreignId('booking_id')
+                ->nullable()
+                ->constrained()
+                ->nullOnDelete();
 
-            $table->string('payment_method')->nullable(); // e.g., card, Twint, PayPal
-            $table->string('transaction_id')->nullable(); // External payment ID
+            $table->decimal('subtotal', 10, 2);
+            $table->decimal('fee', 10, 2)->default(0);
+            $table->decimal('tax', 10, 2)->default(0);
+            $table->decimal('total', 10, 2);
+
+            $table->string('currency')->default('CHF');
+
+            $table->enum('status', ['draft', 'issued', 'paid', 'cancelled'])
+                ->default('draft');
+
+            $table->timestamp('issued_at')->nullable();
             $table->timestamp('paid_at')->nullable();
 
             $table->timestamps();

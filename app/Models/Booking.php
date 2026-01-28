@@ -6,6 +6,7 @@ use App\Enums\BookingStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 
 class Booking extends Model
@@ -56,6 +57,11 @@ class Booking extends Model
             'service_id',   // Booking.service_id
             'user_id'       // Service.user_id
         );
+    }
+
+    public function invoice(): HasOne
+    {
+        return $this->hasOne(Invoice::class);
     }
 
     /* ─────────────────────────────────────────

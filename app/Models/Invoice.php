@@ -115,7 +115,8 @@ class Invoice extends Model
 
     public function markAsPaid(): void
     {
-        if ($this->isPaid()) {
+        // Inability to complete the consent form
+        if ($this->status !== InvoiceStatus::ISSUED) {
             return;
         }
 
@@ -127,7 +128,13 @@ class Invoice extends Model
 
     public function cancel(): void
     {
-        if ($this->isPaid()) {
+        // ❌ Paid invoices cannot be cancelled
+        if ($this->status === InvoiceStatus::PAID) {
+            return;
+        }
+
+        // ❌ Already cancelled → no-op
+        if ($this->status === InvoiceStatus::CANCELLED) {
             return;
         }
 
@@ -156,18 +163,33 @@ class Invoice extends Model
         return (float) $this->total;
     }
 
-    /* ─────────────────────────────────────────
-     |  SCOPES
-     ───────────────────────────────────────── */
+    /* ─────────────────────────────
+ |  QUERY SCOPES
+ ───────────────────────────── */
 
     public function scopePaid($query)
     {
-        return $query->where('status', InvoiceStatus::PAID->value);
+        return $query->where('status', InvoiceStatus::PAID);
     }
 
     public function scopeIssued($query)
     {
-        return $query->where('status', InvoiceStatus::ISSUED->value);
+        return $query->where('status', InvoiceStatus::ISSUED);
+    }
+
+    public function scopeDraft($query)
+    {
+        return $query->where('status', InvoiceStatus::DRAFT);
+    }
+
+    public function scopeCancelled($query)
+    {
+        return $query->where('status', InvoiceStatus::CANCELLED);
+    }
+
+    public function scopeForClient($query, int $clientId)
+    {
+        return $query->where('user_id', $clientId);
     }
 
     public function scopeForProvider($query, int $providerId)
@@ -175,8 +197,8 @@ class Invoice extends Model
         return $query->where('provider_id', $providerId);
     }
 
-    public function scopeForClient($query, int $userId)
+    public function scopeBetweenDates($query, $from, $to)
     {
-        return $query->where('user_id', $userId);
+        return $query->whereBetween('created_at', [$from, $to]);
     }
 }
