@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\InvoiceController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\ServiceController;
 use Illuminate\Http\Request;
@@ -30,3 +31,12 @@ Route::get(
     '/services/{service}/availability',
     [ServiceAvailabilityController::class, 'check']
 );
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/invoices', [InvoiceController::class, 'index']);
+    Route::get('/invoices/{invoice}', [InvoiceController::class, 'show']);
+
+    Route::patch('/invoices/{invoice}/issue', [InvoiceController::class, 'issue']);
+    Route::patch('/invoices/{invoice}/pay', [InvoiceController::class, 'pay']);
+    Route::patch('/invoices/{invoice}/cancel', [InvoiceController::class, 'cancel']);
+});
