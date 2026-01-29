@@ -1,8 +1,9 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Responses\ApiResponse;
 use App\Models\Invoice;
 use App\Services\InvoiceService;
 use App\Services\NotificationService;
@@ -29,7 +30,10 @@ class InvoiceController extends Controller
             ? Invoice::forProvider($user->id)->latest()->get()
             : Invoice::forClient($user->id)->latest()->get();
 
-        return response()->json($invoices);
+        return ApiResponse::success(
+            $invoices,
+            'Invoices retrieved successfully'
+        );
     }
 
     /**
@@ -39,7 +43,10 @@ class InvoiceController extends Controller
     {
         $this->authorize('view', $invoice);
 
-        return response()->json($invoice->load(['booking', 'client', 'provider']));
+        return ApiResponse::success(
+            $invoice->load(['booking', 'client', 'provider']),
+            'Invoice retrieved successfully'
+        );
     }
 
     /**
@@ -51,17 +58,17 @@ class InvoiceController extends Controller
 
         $invoice->markAsPaid();
 
-        // NOTIFY THE PROVIDER
+        // Notify provider
         $this->notificationService->notify(
             $invoice->provider,
             'invoice_paid',
             'An invoice has been paid'
         );
 
-        return response()->json([
-            'message' => 'Invoice paid successfully',
-            'data' => $invoice,
-        ]);
+        return ApiResponse::success(
+            $invoice->refresh(),
+            'Invoice paid successfully'
+        );
     }
 
     /**
@@ -73,21 +80,24 @@ class InvoiceController extends Controller
 
         $invoice->cancel();
 
-        return response()->json([
-            'message' => 'Invoice cancelled',
-            'data'    => $invoice->refresh(),
-        ]);
+        return ApiResponse::success(
+            $invoice->refresh(),
+            'Invoice cancelled successfully'
+        );
     }
 
+    /**
+     * Issue invoice
+     */
     public function issue(Invoice $invoice): JsonResponse
     {
         $this->authorize('issue', $invoice);
 
         $invoice->markAsIssued();
 
-        return response()->json([
-            'message' => 'Invoice issued',
-            'data' => $invoice,
-        ]);
+        return ApiResponse::success(
+            $invoice->refresh(),
+            'Invoice issued successfully'
+        );
     }
 }

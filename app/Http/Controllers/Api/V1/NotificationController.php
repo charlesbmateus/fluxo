@@ -1,8 +1,9 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Responses\ApiResponse;
 use App\Models\Notification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,9 +20,10 @@ class NotificationController extends Controller
             ->latest()
             ->get();
 
-        return response()->json([
-            'data' => $notifications,
-        ]);
+        return ApiResponse::success(
+            $notifications,
+            'Notifications retrieved successfully'
+        );
     }
 
     /**
@@ -38,9 +40,10 @@ class NotificationController extends Controller
             'read' => true,
         ]);
 
-        return response()->json([
-            'message' => 'Notification marked as read',
-        ]);
+        return ApiResponse::success(
+            $notification->refresh(),
+            'Notification marked as read'
+        );
     }
 
     /**
@@ -48,13 +51,14 @@ class NotificationController extends Controller
      */
     public function markAllAsRead(): JsonResponse
     {
-        auth()->user()
+        $count = auth()->user()
             ->notifications()
             ->where('read', false)
             ->update(['read' => true]);
 
-        return response()->json([
-            'message' => 'All notifications marked as read',
-        ]);
+        return ApiResponse::success(
+            ['updated' => $count],
+            'All notifications marked as read'
+        );
     }
 }

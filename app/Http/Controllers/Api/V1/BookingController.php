@@ -1,10 +1,11 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreBookingRequest;
 use App\Http\Requests\UpdateBookingStatusRequest;
+use App\Http\Responses\ApiResponse;
 use App\Models\Booking;
 use App\Services\BookingService;
 use Illuminate\Http\JsonResponse;
@@ -25,10 +26,11 @@ class BookingController extends Controller
             $request->validated()
         );
 
-        return response()->json([
-            'message' => 'Booking created successfully',
-            'data' => $booking->load(['service', 'provider']),
-        ], 201);
+        return ApiResponse::success(
+            $booking->load(['service', 'provider']),
+            'Booking created successfully',
+            201
+        );
     }
 
     /**
@@ -44,9 +46,9 @@ class BookingController extends Controller
             $request->validated()['status']
         );
 
-        return response()->json([
-            'message' => 'Booking status updated',
-            'data' => $updated,
-        ]);
+        return ApiResponse::success(
+            $updated,
+            'Booking status updated'
+        );
     }
 }
