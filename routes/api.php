@@ -1,12 +1,16 @@
 <?php
 use App\Http\Controllers\Api\V1\BookingController;
 use App\Http\Controllers\Api\V1\InvoiceController;
+use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')
     ->middleware('auth:sanctum')
     ->group(function () {
+
+        // ───────── ME ─────────
+        Route::get('/me', [MeController::class, 'show']);
 
         // ───────── BOOKINGS ─────────
         Route::post('/bookings', [BookingController::class, 'store']);
