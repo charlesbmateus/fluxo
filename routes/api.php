@@ -1,4 +1,6 @@
 <?php
+
+use App\Http\Controllers\Api\V1\ServiceController;
 use App\Http\Controllers\Api\V1\BookingController;
 use App\Http\Controllers\Api\V1\InvoiceController;
 use App\Http\Controllers\Api\V1\MeController;
@@ -26,4 +28,12 @@ Route::prefix('v1')
         // ───────── NOTIFICATIONS ─────────
         Route::get('/notifications', [NotificationController::class, 'index']);
         Route::patch('/notifications/{notification}/read', [NotificationController::class, 'markAsRead']);
+
+        // ───────── SERVICES ─────────
+        Route::get('/services', [ServiceController::class, 'index']);
+        Route::get('/services/{service}', [ServiceController::class, 'show']);
+        Route::get('/services/{service}/availability', [ServiceController::class, 'availability']);
+
+        // ───────── PROVIDERS ─────────
+        Route::get('/providers/{provider}/services', [ServiceController::class, 'byProvider']);
     });
