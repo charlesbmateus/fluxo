@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CategoryController;
+use App\Http\Controllers\Api\V1\ChatController;
 use App\Http\Controllers\Api\V1\ServiceController;
 use App\Http\Controllers\Api\V1\BookingController;
 use App\Http\Controllers\Api\V1\InvoiceController;
@@ -15,6 +17,12 @@ Route::prefix('v1')
 
         // ───────── ME ─────────
         Route::get('/me', [MeController::class, 'show']);
+
+        // ───────── CHAT ─────────
+        Route::get('/conversations', [ChatController::class, 'index']);
+        Route::get('/conversations/{conversation}', [ChatController::class, 'show']);
+        Route::post('/conversations/{conversation}/messages', [ChatController::class, 'store']);
+        Route::patch('/conversations/{conversation}/read', [ChatController::class, 'markAsRead']);
 
         // ───────── BOOKINGS ─────────
         Route::post('/bookings', [BookingController::class, 'store']);
@@ -48,3 +56,11 @@ Route::prefix('v1')->group(function () {
 
 // ───────── WEBHOOK ─────────
 Route::post('/webhooks/stripe', [StripeWebhookController::class, 'handle']);
+
+Route::post('/register', [AuthController::class, 'register']);
+Route::post('/login', [AuthController::class, 'login']);
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/profile', [AuthController::class, 'profile']);
+});

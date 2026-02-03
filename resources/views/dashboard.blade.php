@@ -10,15 +10,6 @@
             <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900 dark:text-gray-100">
                     {{ __("You're logged in as:") }} {{ Auth::user()->role }}
-                    @if (Auth::user())
-                        @forelse (Auth::user()->messages as $service)
-                            <p>{{ $service }}</p>
-                        @empty
-                            <p>No services yet.</p>
-                        @endforelse
-                    @else
-                        <p>You are not a service provider.</p>
-                    @endif
                 </div>
             </div>
         </div>
