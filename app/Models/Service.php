@@ -39,6 +39,14 @@ class Service extends Model
      |  RELATIONSHIPS
      ───────────────────────────────────────── */
 
+    /**
+     * Provider who offers the service
+     */
+    public function provider(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
     // Provider (owner)
     public function user(): BelongsTo
     {

@@ -39,20 +39,18 @@ Route::prefix('v1')
         Route::get('/notifications', [NotificationController::class, 'index']);
         Route::patch('/notifications/{notification}/read', [NotificationController::class, 'markAsRead']);
 
-        // ───────── SERVICES ─────────
-        Route::get('/services', [ServiceController::class, 'index']);
-        Route::get('/services/{service}', [ServiceController::class, 'show']);
-        Route::get('/services/{service}/availability', [ServiceController::class, 'availability']);
-
         // ───────── PROVIDERS ─────────
         Route::get('/providers/{provider}/services', [ServiceController::class, 'byProvider']);
     });
 
-Route::prefix('v1')->group(function () {
-    // ───────── CATEGORIES ─────────
-    Route::get('/categories', [CategoryController::class, 'index']);
-    Route::get('/categories/{slug}', [CategoryController::class, 'show']);
-});
+// ───────── SERVICES ─────────
+Route::get('/services', [ServiceController::class, 'index']);
+Route::get('/services/{service}', [ServiceController::class, 'show']);
+Route::get('/services/{service}/availability', [ServiceController::class, 'availability']);
+
+// ───────── CATEGORIES ─────────
+Route::get('/categories', [CategoryController::class, 'index']);
+Route::get('/categories/{slug}', [CategoryController::class, 'show']);
 
 // ───────── WEBHOOK ─────────
 Route::post('/webhooks/stripe', [StripeWebhookController::class, 'handle']);
