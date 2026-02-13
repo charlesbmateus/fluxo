@@ -48,4 +48,9 @@ class Conversation extends Model
             $this->provider_id,
         ]);
     }
+
+    public function participants()
+    {
+        return collect([$this->client, $this->provider])->filter();
+    }
 }

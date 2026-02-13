@@ -60,5 +60,10 @@ class DatabaseSeeder extends Seeder
                 'user_id'    => $clients->random()->id,
             ]);
         });
+
+        $this->call([
+            ConversationSeeder::class,
+            MessageSeeder::class,
+        ]);
     }
 }
