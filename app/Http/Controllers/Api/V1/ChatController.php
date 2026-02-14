@@ -21,11 +21,19 @@ class ChatController extends Controller
     {
         $user = auth()->user();
 
-        $conversations = Conversation::where('client_id', $user->id)
-            ->orWhere('provider_id', $user->id)
-            ->with(['booking', 'messages.sender'])
+        $conversations = Conversation::query()
+            ->where(function ($query) use ($user) {
+                $query->where('client_id', $user->id)
+                    ->orWhere('provider_id', $user->id);
+            })
+            ->with([
+                'booking',
+                'messages.sender',
+                'client:id,name,avatar',
+                'provider:id,name,avatar'
+            ])
             ->latest()
-            ->get();
+            ->paginate(15);
 
         return ApiResponse::success($conversations);
     }
@@ -37,9 +45,15 @@ class ChatController extends Controller
     {
         $this->authorize('view', $conversation);
 
-        return ApiResponse::success(
-            $conversation->load('messages.sender')
-        );
+        $messages = $conversation->messages()
+            ->with('sender')
+            ->latest()
+            ->paginate(20);
+
+        return ApiResponse::success([
+            'conversation' => $conversation,
+            'messages'     => $messages,
+        ]);
     }
 
     /**
