@@ -38,6 +38,7 @@ Route::prefix('v1')
         // ───────── NOTIFICATIONS ─────────
         Route::get('/notifications', [NotificationController::class, 'index']);
         Route::patch('/notifications/{notification}/read', [NotificationController::class, 'markAsRead']);
+        Route::patch('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead']);
 
         // ───────── PROVIDERS ─────────
         Route::get('/providers/{provider}/services', [ServiceController::class, 'byProvider']);
