@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\ChatController;
+use App\Http\Controllers\Api\V1\DashboardController;
 use App\Http\Controllers\Api\V1\ServiceController;
 use App\Http\Controllers\Api\V1\BookingController;
 use App\Http\Controllers\Api\V1\InvoiceController;
@@ -17,6 +18,9 @@ Route::prefix('v1')
 
         // ───────── ME ─────────
         Route::get('/me', [MeController::class, 'show']);
+
+        // ───────── DASHBOARD ─────────
+        Route::get('/dashboard/provider', [DashboardController::class, 'provider']);
 
         // ───────── CHAT ─────────
         Route::get('/conversations', [ChatController::class, 'index']);
