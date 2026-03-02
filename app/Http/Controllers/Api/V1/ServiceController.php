@@ -19,7 +19,12 @@ class ServiceController extends Controller
     public function index(Request $request): JsonResponse
     {
         $query = Service::query()
-            ->with(['category', 'provider'])
+            ->with([
+                'category',
+                'provider',
+                'images',
+                'primaryImage'
+            ])
             ->where('is_active', true);
 
         // 🔎 Filters
@@ -41,6 +46,22 @@ class ServiceController extends Controller
 
         $services = $query->latest()->paginate(12);
 
+        $services->getCollection()->transform(function ($service) {
+
+            $service->thumbnail = optional($service->primaryImage)->path
+                ?? optional($service->images->first())->path;
+
+            $service->gallery = $service->images->map(function ($image) {
+                return [
+                    'id' => $image->id,
+                    'url' => $image->path,
+                    'is_primary' => $image->is_primary,
+                ];
+            });
+
+            return $service;
+        });
+
         return ApiResponse::success($services);
     }
 
@@ -49,13 +70,26 @@ class ServiceController extends Controller
      */
     public function show(Service $service): JsonResponse
     {
-        return ApiResponse::success(
-            $service->load([
-                'category',
-                'provider',
-                'reviews.user',
-            ])
-        );
+        $service->load([
+            'category',
+            'provider',
+            'reviews.user',
+            'images',
+            'primaryImage'
+        ]);
+
+        $service->thumbnail = optional($service->primaryImage)->path
+            ?? optional($service->images->first())->path;
+
+        $service->gallery = $service->images->map(function ($image) {
+            return [
+                'id' => $image->id,
+                'url' => $image->path,
+                'is_primary' => $image->is_primary,
+            ];
+        });
+
+        return ApiResponse::success($service);
     }
 
     /**

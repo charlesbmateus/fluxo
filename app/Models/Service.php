@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Str;
 
 class Service extends Model
@@ -34,6 +35,8 @@ class Service extends Model
         'is_active' => 'boolean',
         'status'    => ServiceStatus::class,
     ];
+
+    protected $with = ['primaryImage'];
 
     /* ─────────────────────────────────────────
      |  RELATIONSHIPS
@@ -81,6 +84,16 @@ class Service extends Model
     public function reviews(): HasMany
     {
         return $this->hasMany(Review::class);
+    }
+
+    public function images(): HasMany
+    {
+        return $this->hasMany(ServiceImage::class);
+    }
+
+    public function primaryImage(): HasOne
+    {
+        return $this->hasOne(ServiceImage::class)->where('is_primary', true);
     }
 
     /* ─────────────────────────────────────────
