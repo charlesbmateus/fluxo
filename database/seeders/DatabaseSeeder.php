@@ -10,7 +10,7 @@ use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
-    public function run(): void§
+    public function run(): void
     {
         // ───────── CATEGORIES ─────────
         $this->call(CategorySeeder::class);
@@ -21,6 +21,9 @@ class DatabaseSeeder extends Seeder
 
         // ───────── SERVICES (Seeder) ─────────
         $this->call(ServiceSeeder::class);
+
+        // ───────── SERVICE AVAILABILITIES ─────────
+        $this->call(ServiceAvailabilitySeeder::class);
 
         $services = Service::all();
 

@@ -1,20 +1,61 @@
 <?php
 
+use Illuminate\Support\Facades\Route;
+
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\BookingController;
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\ChatController;
 use App\Http\Controllers\Api\V1\DashboardController;
-use App\Http\Controllers\Api\V1\ServiceController;
-use App\Http\Controllers\Api\V1\BookingController;
 use App\Http\Controllers\Api\V1\InvoiceController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\NotificationController;
-use App\Http\Controllers\Webhooks\StripeWebhookController;
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\V1\ServiceController;
+use App\Http\Controllers\Api\V1\StripeController;
 
-Route::prefix('v1')
-    ->middleware('auth:sanctum')
-    ->group(function () {
+use App\Http\Controllers\Webhooks\StripeWebhookController;
+
+/*
+|--------------------------------------------------------------------------
+| API V1
+|--------------------------------------------------------------------------
+*/
+
+Route::prefix('v1')->group(function () {
+
+    /*
+    |--------------------------------------------------------------------------
+    | AUTH
+    |--------------------------------------------------------------------------
+    */
+
+    Route::post('/register', [AuthController::class, 'register']);
+    Route::post('/login', [AuthController::class, 'login']);
+
+    /*
+    |--------------------------------------------------------------------------
+    | PUBLIC
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get('/services', [ServiceController::class, 'index']);
+    Route::get('/services/{service}', [ServiceController::class, 'show']);
+    Route::get('/services/{service}/availability', [ServiceController::class, 'availability']);
+
+    Route::get('/categories', [CategoryController::class, 'index']);
+    Route::get('/categories/{slug}', [CategoryController::class, 'show']);
+
+    /*
+    |--------------------------------------------------------------------------
+    | PROTECTED
+    |--------------------------------------------------------------------------
+    */
+
+    Route::middleware('auth:sanctum')->group(function () {
+
+        // ───────── AUTH ─────────
+        Route::post('/logout', [AuthController::class, 'logout']);
+        Route::get('/profile', [AuthController::class, 'profile']);
 
         // ───────── ME ─────────
         Route::get('/me', [MeController::class, 'show']);
@@ -32,6 +73,9 @@ Route::prefix('v1')
         Route::post('/bookings', [BookingController::class, 'store']);
         Route::patch('/bookings/{booking}/status', [BookingController::class, 'updateStatus']);
 
+        // Stripe payment intent
+        Route::post('/bookings/{booking}/payment-intent', [BookingController::class, 'createPaymentIntent']);
+
         // ───────── INVOICES ─────────
         Route::get('/invoices', [InvoiceController::class, 'index']);
         Route::get('/invoices/{invoice}', [InvoiceController::class, 'show']);
@@ -46,24 +90,18 @@ Route::prefix('v1')
 
         // ───────── PROVIDERS ─────────
         Route::get('/providers/{provider}/services', [ServiceController::class, 'byProvider']);
+
+        // ───────── STRIPE CONNECT ─────────
+        Route::post('/stripe/connect', [StripeController::class, 'createAccount']);
+
     });
 
-// ───────── SERVICES ─────────
-Route::get('/services', [ServiceController::class, 'index']);
-Route::get('/services/{service}', [ServiceController::class, 'show']);
-Route::get('/services/{service}/availability', [ServiceController::class, 'availability']);
-
-// ───────── CATEGORIES ─────────
-Route::get('/categories', [CategoryController::class, 'index']);
-Route::get('/categories/{slug}', [CategoryController::class, 'show']);
-
-// ───────── WEBHOOK ─────────
-Route::post('/webhooks/stripe', [StripeWebhookController::class, 'handle']);
-
-Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login', [AuthController::class, 'login']);
-
-Route::middleware('auth:sanctum')->group(function () {
-    Route::post('/logout', [AuthController::class, 'logout']);
-    Route::get('/profile', [AuthController::class, 'profile']);
 });
+
+/*
+|--------------------------------------------------------------------------
+| STRIPE WEBHOOK (NO AUTH)
+|--------------------------------------------------------------------------
+*/
+
+Route::post('/v1/stripe/webhook', [StripeWebhookController::class, 'handle']);

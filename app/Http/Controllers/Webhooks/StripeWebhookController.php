@@ -5,13 +5,14 @@ namespace App\Http\Controllers\Webhooks;
 use App\Http\Controllers\Controller;
 use App\Models\Invoice;
 use App\Services\NotificationService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Stripe\Webhook;
 use Stripe\Exception\SignatureVerificationException;
 
 class StripeWebhookController extends Controller
 {
-    public function handle(Request $request)
+    public function handle(Request $request): JsonResponse
     {
         $payload    = $request->getContent();
         $signature  = $request->header('Stripe-Signature');
