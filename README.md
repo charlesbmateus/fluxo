@@ -1,6 +1,6 @@
-# 🚀 Fluxo Backend
+# 🚀 marketplace Backend
 
-Backend for the **Fluxo** project, built with **Laravel 11**, **Laravel Breeze (API)**, **Docker**, **Vite**, and **Nginx**.
+Backend for the **marketplace** project, built with **Laravel 11**, **Laravel Breeze (API)**, **Docker**, **Vite**, and **Nginx**.
 
 This repository contains the **complete development environment**: PHP-FPM, Nginx, Node (for Vite), and database (MySQL or SQLite).
 
@@ -25,8 +25,8 @@ This repository contains the **complete development environment**: PHP-FPM, Ngin
 1. **Clone the repository**
 
 ```bash
-git clone https://github.com/charlesbmateus/fluxo.git
-cd fluxo-backend
+git clone https://github.com/charlesbmateus/marketplace.git
+cd marketplace-backend
 ```
 
 2. **Copy/Create the environment file**
@@ -46,23 +46,23 @@ cd fluxo-backend
 
 5. **Install PHP dependencies**
 ```bash
-   docker exec -it fluxo-backend-app-container composer install
+   docker exec -it marketplace-backend-app-container composer install
 ```
 
 6. **Run migrations and storage link**
 ```bash
-   docker exec -it fluxo-backend-app-container php artisan migrate --force
-   docker exec -it fluxo-backend-app-container php artisan storage:link
+   docker exec -it marketplace-backend-app-container php artisan migrate --force
+   docker exec -it marketplace-backend-app-container php artisan storage:link
 ```
 
 7. **Install Node dependencies**
 ```bash
-   docker exec -it fluxo-node npm install
+   docker exec -it marketplace-node npm install
 ```
 
 8. **Run the development server**
 ```bash
-   docker exec -it fluxo-node npm run dev
+   docker exec -it marketplace-node npm run dev
 ```
 
 9. **Access URLs**
